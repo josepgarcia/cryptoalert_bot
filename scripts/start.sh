@@ -25,15 +25,15 @@ source venv/bin/activate
 echo "Instalando dependencias..."
 pip install -r requirements.txt
 
-# Verificar si el archivo config.env existe
-if [ ! -f "config.env" ]; then
-    echo "Error: El archivo config.env no existe. Por favor, crea este archivo con la configuración necesaria."
+# Verificar si el archivo config/config.env existe
+if [ ! -f "config/config.env" ]; then
+    echo "Error: El archivo config/config.env no existe. Por favor, crea este archivo con la configuración necesaria."
     exit 1
 fi
 
-# Dar permisos de ejecución al script del bot
-chmod +x bot.py
+# Dar permisos de ejecución al script principal
+chmod +x main.py
 
 # Iniciar el bot
 echo "Iniciando el bot..."
-python3 bot.py
+python3 main.py

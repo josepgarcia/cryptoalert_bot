@@ -1,0 +1,47 @@
+# Entorno virtual
+venv/
+.env
+
+# Archivos de configuración sensibles
+config.env
+
+# Archivos de Git
+.git/
+.gitignore
+
+# Archivos de caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de distribución
+dist/
+build/
+*.egg-info/
+
+# Archivos de logs
+*.log
+
+# Archivos específicos de Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Scripts de inicio que no son necesarios dentro del contenedor
+start.sh
+docker-start.sh
+init_git.sh
+
+# Archivos de documentación
+README.md
+CONTRIBUTING.md
+
+# Archivos de IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db

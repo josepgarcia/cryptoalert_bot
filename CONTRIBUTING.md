@@ -10,22 +10,44 @@
    cd cryptoalert_bot
    ```
 
-2. Crea y activa un entorno virtual:
+2. Crea tu archivo de configuración a partir del ejemplo:
+   ```bash
+   cp config.env.example config.env
+   ```
+   Luego edita `config.env` con tus propios valores.
+
+### Opción A: Entorno Local
+
+1. Crea y activa un entorno virtual:
    ```bash
    python -m venv venv
    source venv/bin/activate  # En Windows: venv\Scripts\activate
    ```
 
-3. Instala las dependencias de desarrollo:
+2. Instala las dependencias de desarrollo:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Crea tu archivo de configuración a partir del ejemplo:
+### Opción B: Usando Docker
+
+1. Asegúrate de tener Docker y docker-compose instalados en tu sistema.
+
+2. Construye y ejecuta el contenedor para desarrollo:
    ```bash
-   cp config.env.example config.env
+   docker-compose build
+   docker-compose up -d
    ```
-   Luego edita `config.env` con tus propios valores.
+
+3. Para ver los logs durante el desarrollo:
+   ```bash
+   docker-compose logs -f
+   ```
+
+4. Para detener el contenedor:
+   ```bash
+   docker-compose down
+   ```
 
 ## Proceso de Contribución
 

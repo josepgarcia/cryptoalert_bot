@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  bot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cryptoalert_bot
+    restart: unless-stopped
+    volumes:
+      - ../config/config.env:/app/config/config.env:ro
+      - ../data:/app/data
+    environment:
+      - TZ=Europe/Madrid
