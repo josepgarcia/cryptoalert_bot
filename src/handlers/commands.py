@@ -4,6 +4,7 @@ import platform
 import psutil
 import logging
 import requests
+import time
 from datetime import datetime
 from telegram import Update, BotCommand
 from telegram.ext import ContextTypes, Application
@@ -17,68 +18,81 @@ logger = logging.getLogger(__name__)
 telegram_bot = None
 db = None
 
+# Variable global para almacenar el tiempo de inicio
+start_time = time.time()
+
 # Comandos del bot
 async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Responde con 'pong' cuando recibe el comando /ping"""
     # Mantenemos la respuesta directa para comandos interactivos
     await update.message.reply_text('pong')
 
-async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Devuelve información del sistema donde se ejecuta el bot"""
+async def system_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Devuelve información completa del sistema incluyendo uptime y fecha actual"""
     global telegram_bot
     if telegram_bot is None:
         telegram_bot = TelegramBot()
     
+    # Calcular uptime
+    uptime_seconds = time.time() - start_time
+    uptime_days = int(uptime_seconds // 86400)
+    uptime_hours = int((uptime_seconds % 86400) // 3600)
+    uptime_minutes = int((uptime_seconds % 3600) // 60)
+    uptime_seconds_remainder = int(uptime_seconds % 60)
+    
+    # Formatear uptime
+    if uptime_days > 0:
+        uptime_str = f"{uptime_days}d {uptime_hours}h {uptime_minutes}m {uptime_seconds_remainder}s"
+    elif uptime_hours > 0:
+        uptime_str = f"{uptime_hours}h {uptime_minutes}m {uptime_seconds_remainder}s"
+    elif uptime_minutes > 0:
+        uptime_str = f"{uptime_minutes}m {uptime_seconds_remainder}s"
+    else:
+        uptime_str = f"{uptime_seconds_remainder}s"
+    
+    # Obtener información del sistema
     system_info = {
         'Sistema Operativo': platform.system() + ' ' + platform.release(),
         'Versión de Python': platform.python_version(),
         'CPU': platform.processor(),
         'Uso de CPU': f"{psutil.cpu_percent()}%",
-        'Memoria RAM': f"{psutil.virtual_memory().percent}% usado",
-        'Tiempo de ejecución': str(datetime.now()),
+        'Memoria RAM': f"{psutil.virtual_memory().percent}% usado ({psutil.virtual_memory().used // (1024**3):.1f}GB / {psutil.virtual_memory().total // (1024**3):.1f}GB)",
+        'Disco': f"{psutil.disk_usage('/').percent}% usado",
+        'Uptime del Bot': uptime_str,
+        'Fecha y Hora': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'Hostname': platform.node()
     }
     
-    message = "📊 <b>Información del Sistema</b>\n\n"
+    # Crear mensaje con formato HTML
+    message = "🖥️ <b>INFORMACIÓN DEL SISTEMA</b>\n\n"
     for key, value in system_info.items():
         message += f"<b>{key}:</b> {value}\n"
     
+    # Añadir información adicional de red
+    try:
+        # Obtener información de red
+        net_io = psutil.net_io_counters()
+        message += f"\n<b>Red:</b>\n"
+        message += f"• Bytes enviados: {net_io.bytes_sent // (1024**2):.1f} MB\n"
+        message += f"• Bytes recibidos: {net_io.bytes_recv // (1024**2):.1f} MB\n"
+    except:
+        pass
+    
+    # Añadir información de alertas activas si está disponible
+    try:
+        global db
+        if db is None:
+            db = CryptoDatabase()
+        
+        active_alerts = db.get_active_alerts()
+        message += f"\n<b>Alertas Activas:</b> {len(active_alerts)}\n"
+    except:
+        message += f"\n<b>Alertas Activas:</b> No disponible\n"
+    
     # Para respuestas interactivas, seguimos usando el método de la API de python-telegram-bot
-    # ya que necesitamos responder directamente al mensaje del usuario
     await update.message.reply_text(message, parse_mode='HTML')
-    
-    # También podemos usar nuestra clase TelegramBot para enviar mensajes adicionales si es necesario
-    # telegram_bot.send_message("Mensaje adicional de estado")
 
-# Función para enviar un informe detallado
-async def send_report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Envía un informe detallado usando la clase TelegramBot"""
-    global telegram_bot
-    if telegram_bot is None:
-        telegram_bot = TelegramBot()
-    
-    # Crear un mensaje con formato HTML más complejo
-    report = f"""<b>📈 INFORME DETALLADO</b>
 
-<i>Generado el {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
-
-<b>Estadísticas del Sistema:</b>
-• CPU: {psutil.cpu_percent()}%
-• RAM: {psutil.virtual_memory().percent}%
-• Disco: {psutil.disk_usage('/').percent}%
-
-<b>Información de Red:</b>
-• Hostname: {platform.node()}
-• Sistema: {platform.system()} {platform.release()}
-
-<code>Este es un informe automático generado por el bot.</code>
-"""
-    
-    # Enviar el informe usando la clase TelegramBot
-    telegram_bot.send_message(report)
-    
-    # Informar al usuario que el informe ha sido enviado
-    await update.message.reply_text("✅ Informe detallado enviado al chat configurado.")
 
 # Función para la tarea programada
 async def scheduled_task(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -92,11 +106,78 @@ async def scheduled_task(context: ContextTypes.DEFAULT_TYPE) -> None:
     # Obtener configuración desde variables de entorno
     from src.bot import CRYPTO_DEFAULT_PRICE_SOURCE, CRYPTO_NOTIFICATION_COOLDOWN
     
-    # Aquí se implementaría la lógica para verificar precios y disparar alertas
-    # usando los valores de configuración del archivo config.env
-    
     # Usar la clase TelegramBot para enviar el mensaje sin formato HTML
     telegram_bot.send_message("🔔 Ejecución programada - Verificando alertas de precios", parse_mode=None)
+    
+    # 1. Obtener todas las alertas activas de la base de datos
+    active_alerts = db.get_active_alerts()
+    if not active_alerts:
+        telegram_bot.send_message("ℹ️ No hay alertas activas configuradas.", parse_mode=None)
+        return
+    
+    # 2. Agrupar alertas por token para hacer una sola petición por token
+    tokens = {}
+    for alert in active_alerts:
+        token_name = alert['token_name']
+        if token_name not in tokens:
+            tokens[token_name] = []
+        tokens[token_name].append(alert)
+    
+    # 3. Hacer las peticiones a CoinGecko para obtener los precios actuales
+    token_prices = {}
+    triggered_alerts = []
+    
+    for token_name in tokens.keys():
+        try:
+            # Convertir el nombre del token a minúsculas para la API
+            token_id = token_name.lower()
+            url = f"https://api.coingecko.com/api/v3/simple/price?ids={token_id}&vs_currencies=usd"
+            response = requests.get(url)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if token_id in data and 'usd' in data[token_id]:
+                    current_price = data[token_id]['usd']
+                    token_prices[token_name] = current_price
+                    
+                    # 4. Comprobar si las alertas se encuentran above o below
+                    for alert in tokens[token_name]:
+                        alert_type = alert['alert_type']
+                        target_price = alert['target_price']
+                        alert_id = alert['id']
+                        
+                        # Verificar si se cumple la condición de la alerta
+                        if (alert_type == 'above' and current_price >= target_price) or \
+                           (alert_type == 'below' and current_price <= target_price):
+                            # Registrar que la alerta se ha disparado
+                            db.trigger_alert(alert_id)
+                            triggered_alerts.append({
+                                'id': alert_id,
+                                'token_name': token_name,
+                                'alert_type': alert_type,
+                                'target_price': target_price,
+                                'current_price': current_price
+                            })
+                else:
+                    telegram_bot.send_message(f"⚠️ No se encontró información de precio para {token_name}", parse_mode=None)
+            else:
+                telegram_bot.send_message(f"⚠️ Error al consultar precio de {token_name}: Código {response.status_code}", parse_mode=None)
+        except Exception as e:
+            telegram_bot.send_message(f"⚠️ Error al procesar {token_name}: {str(e)}", parse_mode=None)
+    
+    # 5. Enviar reporte de alertas disparadas
+    if triggered_alerts:
+        report = "🚨 ALERTAS DISPARADAS 🚨\n\n"
+        for alert in triggered_alerts:
+            condition = "por encima de" if alert['alert_type'] == 'above' else "por debajo de"
+            report += f"ID: {alert['id']}\n"
+            report += f"Token: {alert['token_name']}\n"
+            report += f"Condición: {condition} ${alert['target_price']}\n"
+            report += f"Precio actual: ${alert['current_price']}\n\n"
+        
+        telegram_bot.send_message(report, parse_mode=None)
+    else:
+        telegram_bot.send_message("✅ Verificación completada. No se dispararon alertas.", parse_mode=None)
 
 # Función para crear una alerta
 async def alert_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -185,11 +266,10 @@ async def post_init(application: Application) -> None:
     """Configura los comandos que aparecerán en el teclado de Telegram"""
     commands = [
         BotCommand("ping", "Comprueba si el bot está activo"),
-        BotCommand("status", "Muestra información del sistema"),
-        BotCommand("report", "Envía un informe detallado usando TelegramBot"),
+        BotCommand("system", "Muestra información completa del sistema"),
         BotCommand("scheduled", "Muestra las alertas de precio programadas"),
         BotCommand("alert", "Crea una alerta de precio para un token"),
-        BotCommand("tokenprice", "Consulta el precio actual de un token"),
+        BotCommand("info", "Consulta el precio actual de un token"),
         #BotCommand("list", "Muestra todas las alertas de precio"),
         BotCommand("remove", "Elimina una alerta de precio por ID")
     ]
@@ -297,9 +377,9 @@ async def tokenprice_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if not context.args or len(context.args) != 1:
         await update.message.reply_text(
             "❌ Error: Formato incorrecto.\n\n"
-            "Uso: /tokenprice <token_name>\n\n"
-            "Ejemplo: /tokenprice bitcoin\n"
-            "Ejemplo: /tokenprice ethereum"
+            "Uso: /info <token_name>\n\n"
+            "Ejemplo: /info bitcoin\n"
+            "Ejemplo: /info ethereum"
         )
         return
     
