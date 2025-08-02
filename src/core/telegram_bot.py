@@ -52,7 +52,8 @@ class TelegramBot:
                      chat_id: Optional[str] = None,
                      parse_mode: Optional[str] = None,
                      disable_web_page_preview: Optional[bool] = None,
-                     disable_notification: Optional[bool] = None) -> Dict[str, Any]:
+                     disable_notification: Optional[bool] = None,
+                     escape_html: bool = False) -> Dict[str, Any]:
         """
         Envía un mensaje por Telegram
 
@@ -62,6 +63,7 @@ class TelegramBot:
             parse_mode (str, optional): Modo de parseo (HTML, Markdown, MarkdownV2)
             disable_web_page_preview (bool, optional): Deshabilitar vista previa de enlaces
             disable_notification (bool, optional): Enviar sin notificación
+            escape_html (bool, optional): Si es True, escapa los caracteres especiales HTML
 
         Returns:
             Dict[str, Any]: Respuesta de la API de Telegram
@@ -71,7 +73,10 @@ class TelegramBot:
         parse_mode = parse_mode or self.parse_mode
         disable_web_page_preview = disable_web_page_preview if disable_web_page_preview is not None else self.disable_web_page_preview
         disable_notification = disable_notification if disable_notification is not None else self.disable_notification
-
+        
+        # Asegurarse de que el texto sea una cadena
+        text = str(text)
+        
         # Preparar datos del mensaje
         data = {
             "chat_id": chat_id,

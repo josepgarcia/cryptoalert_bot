@@ -1,13 +1,17 @@
 # Bot de Alertas de Telegram
 
 Este bot de Telegram está diseñado para responder a comandos básicos y ejecutar tareas programadas.
-Hecho con IA y Python utilizando el IDE TRAE y 
+Hecho con IA y Python utilizando el IDE TRAE.
 
 ## Características
 
 - Responde al comando `/ping` con "pong"
 - Responde al comando `/status` con información del sistema
-- Ejecuta una tarea programada cada X minutos (configurable)
+- Revisa el precio de los tokens configurados cada X minutos (configurable)
+- Notifica al usuario cuando el precio de un token cumple con las condiciones de una alerta
+- Permite al usuario configurar alertas de precio para tokens específicos
+- Permite al usuario eliminar alertas de precio previamente configuradas
+- Permite al usuario ver las alertas de precio configuradas
 
 ## Requisitos
 

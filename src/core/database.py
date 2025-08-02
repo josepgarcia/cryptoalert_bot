@@ -158,6 +158,21 @@ class CryptoDatabase:
             self.conn.rollback()
             raise
     
+    def remove_alert(self, alert_id):
+        """Alias para delete_alert"""
+        return self.delete_alert(alert_id)
+        
+    def get_all_alerts(self):
+        """Obtiene todas las alertas de la base de datos"""
+        try:
+            self.cursor.execute('''
+            SELECT * FROM alerts ORDER BY created_at DESC
+            ''')
+            return self.cursor.fetchall()
+        except sqlite3.Error as e:
+            logger.error(f"Error al obtener todas las alertas: {e}")
+            raise
+    
     def close(self):
         """Cierra la conexión a la base de datos"""
         if self.conn:

@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler
-from src.handlers.commands import ping_command, status_command, send_report_command, alert_command, scheduled_task, post_init, init_telegram_bot
+from src.handlers.commands import ping_command, status_command, send_report_command, alert_command, scheduled_task, scheduled_command, remove_command, tokenprice_command, post_init, init_telegram_bot
 
 # Configurar logging
 logging.basicConfig(
@@ -47,6 +47,9 @@ def main() -> None:
     application.add_handler(CommandHandler("status", status_command))
     application.add_handler(CommandHandler("report", send_report_command))
     application.add_handler(CommandHandler("alert", alert_command))
+    application.add_handler(CommandHandler("scheduled", scheduled_command))
+    application.add_handler(CommandHandler("remove", remove_command))
+    application.add_handler(CommandHandler("tokenprice", tokenprice_command))
 
     # Configurar la tarea programada (cada X minutos)
     job_queue = application.job_queue
