@@ -166,7 +166,7 @@ class CryptoDatabase:
         """Obtiene todas las alertas de la base de datos"""
         try:
             self.cursor.execute('''
-            SELECT * FROM alerts ORDER BY created_at DESC
+            SELECT * FROM alerts ORDER BY token_name, created_at DESC
             ''')
             return self.cursor.fetchall()
         except sqlite3.Error as e:

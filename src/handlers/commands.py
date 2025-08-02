@@ -104,15 +104,17 @@ async def scheduled_task(context: ContextTypes.DEFAULT_TYPE) -> None:
         db = CryptoDatabase()
     
     # Obtener configuración desde variables de entorno
-    from src.bot import CRYPTO_DEFAULT_PRICE_SOURCE, CRYPTO_NOTIFICATION_COOLDOWN
+    from src.bot import CRYPTO_DEFAULT_PRICE_SOURCE, CRYPTO_DEBUG_MODE
     
     # Usar la clase TelegramBot para enviar el mensaje sin formato HTML
-    telegram_bot.send_message("🔔 Ejecución programada - Verificando alertas de precios", parse_mode=None)
+    if CRYPTO_DEBUG_MODE:
+        telegram_bot.send_message("🔔 Ejecución programada - Verificando alertas de precios", parse_mode=None)
     
     # 1. Obtener todas las alertas activas de la base de datos
     active_alerts = db.get_active_alerts()
     if not active_alerts:
-        telegram_bot.send_message("ℹ️ No hay alertas activas configuradas.", parse_mode=None)
+        if CRYPTO_DEBUG_MODE:
+            telegram_bot.send_message("ℹ️ No hay alertas activas configuradas.", parse_mode=None)
         return
     
     # 2. Agrupar alertas por token para hacer una sola petición por token
@@ -177,7 +179,8 @@ async def scheduled_task(context: ContextTypes.DEFAULT_TYPE) -> None:
         
         telegram_bot.send_message(report, parse_mode=None)
     else:
-        telegram_bot.send_message("✅ Verificación completada. No se dispararon alertas.", parse_mode=None)
+        if CRYPTO_DEBUG_MODE:
+            telegram_bot.send_message("✅ Verificación completada. No se dispararon alertas.", parse_mode=None)
 
 # Función para crear una alerta
 async def alert_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -278,7 +281,7 @@ async def post_init(application: Application) -> None:
 
 # Función para mostrar las alertas programadas
 async def scheduled_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Muestra las alertas de precio programadas"""
+    """Muestra las alertas de precio programadas en formato tabla"""
     global db
     if db is None:
         db = CryptoDatabase()
@@ -293,26 +296,37 @@ async def scheduled_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         )
         return
     
-    # Crear mensaje con las alertas sin formato HTML
-    message = "🔔 Alertas de precio programadas:\n\n"
+    # Crear tabla con formato simple usando tabs
+    table_header = "🔔 <b>Alertas de Precio Programadas</b>\n\n"
+    table_header += "<pre>ID\tToken\tTipo\tPrecio Obj.\tContrato\tCreada\n"
+    table_header += "──\t─────\t────\t──────────\t────────\t──────\n</pre>"
+    
+    table_rows = ""
     for alert in active_alerts:
         # Convertir los valores de sqlite3.Row a strings para evitar problemas de formato
         alert_id = str(alert['id'])
         token_name = str(alert['token_name'])
-        token_contract = str(alert['token_contract']) if alert['token_contract'] else None
-        alert_type = str(alert['alert_type'])
+        token_contract = str(alert['token_contract']) if alert['token_contract'] else "N/A"
+        alert_type = "↑ Above" if str(alert['alert_type']) == 'above' else "↓ Below"
         target_price = str(alert['target_price'])
-        created_at = str(alert['created_at'])
         
-        message += f"ID: {alert_id}\n"
-        message += f"Token: {token_name}\n"
-        if token_contract:
-            message += f"Contrato: {token_contract}\n"
-        message += f"Tipo: {'Por encima de' if alert_type == 'above' else 'Por debajo de'}\n"
-        message += f"Precio objetivo: {target_price}\n"
-        message += f"Creada: {created_at}\n\n"
+        # Formatear fecha de creación
+        created_at = str(alert['created_at'])
+        if len(created_at) > 19:  # Si es muy larga, truncar
+            created_at = created_at[:19]
+        
+        # Añadir fila con tabs
+        table_rows += f"{alert_id}\t{token_name}\t{alert_type}\t{target_price}\t{token_contract}\t{created_at}\n"
     
-    await update.message.reply_text(message)
+    # Crear mensaje completo
+    message = table_header + "<pre>" + table_rows + "</pre>\n"
+    #message += "<b>Leyenda:</b>\n"
+    #message += "• ↑ Above: Alerta cuando el precio suba por encima del objetivo\n"
+    #message += "• ↓ Below: Alerta cuando el precio baje por debajo del objetivo\n"
+    #message += "• N/A: Sin contrato específico"
+    
+    # Enviar la tabla con formato HTML
+    await update.message.reply_text(message, parse_mode='HTML')
 
 # Función para eliminar una alerta
 async def remove_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
