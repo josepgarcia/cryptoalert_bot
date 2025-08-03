@@ -30,6 +30,7 @@ CRYPTO_DEFAULT_PRICE_SOURCE = os.getenv('CRYPTO_DEFAULT_PRICE_SOURCE', 'coingeck
 CRYPTO_EXCHANGE = os.getenv('CRYPTO_EXCHANGE', 'binance')
 CRYPTO_MAX_ALERTS_PER_USER = int(os.getenv('CRYPTO_MAX_ALERTS_PER_USER', '10'))
 CRYPTO_CLEANUP_DAYS = int(os.getenv('CRYPTO_CLEANUP_DAYS', '7'))
+CRYPTO_DEBUG_MODE = os.getenv('CRYPTO_DEBUG_MODE', 'false').lower() == 'true'
 
 # No hay comandos aquí, se han movido a commands.py
     
