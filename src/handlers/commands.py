@@ -298,8 +298,8 @@ async def scheduled_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     
     # Crear tabla con formato simple usando tabs
     table_header = "🔔 <b>Alertas de Precio Programadas</b>\n\n"
-    table_header += "<pre>ID\tToken\tTipo\tPrecio Obj.\tContrato\tCreada\n"
-    table_header += "──\t─────\t────\t──────────\t────────\t──────\n</pre>"
+    table_header += "<pre>ID\tToken\tTipo\tPrecio Obj.\n"
+    table_header += "──\t─────\t────\t──────────\n</pre>"
     
     table_rows = ""
     for alert in active_alerts:
@@ -316,10 +316,12 @@ async def scheduled_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             created_at = created_at[:19]
         
         # Añadir fila con tabs
-        table_rows += f"{alert_id}\t{token_name}\t{alert_type}\t{target_price}\t{token_contract}\t{created_at}\n"
+        #table_rows += f"{alert_id}\t{token_name}\t{alert_type}\t{target_price}\t{token_contract}\t{created_at}\n"
+        table_rows += f"{alert_id}\t{token_name}\t{alert_type}\t{target_price}\n"
     
     # Crear mensaje completo
-    message = table_header + "<pre>" + table_rows + "</pre>\n"
+    #message = table_header + "<pre>" + table_rows + "</pre>\n"
+    message = "<pre>" + table_rows + "</pre>\n"
     #message += "<b>Leyenda:</b>\n"
     #message += "• ↑ Above: Alerta cuando el precio suba por encima del objetivo\n"
     #message += "• ↓ Below: Alerta cuando el precio baje por debajo del objetivo\n"
