@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler
-from src.handlers.commands import ping_command, system_command, alert_command, scheduled_task, scheduled_command, remove_command, tokenprice_command, post_init, init_telegram_bot
+from src.handlers.commands import ping_command, system_command, alert_command, scheduled_task, list_command, remove_command, tokenprice_command, post_init, init_telegram_bot
 
 # Configurar logging
 logging.basicConfig(
@@ -47,7 +47,7 @@ def main() -> None:
     application.add_handler(CommandHandler("ping", ping_command))
     application.add_handler(CommandHandler("system", system_command))
     application.add_handler(CommandHandler("alert", alert_command))
-    application.add_handler(CommandHandler("scheduled", scheduled_command))
+    application.add_handler(CommandHandler("list", list_command))
     application.add_handler(CommandHandler("remove", remove_command))
     application.add_handler(CommandHandler("info", tokenprice_command))
 

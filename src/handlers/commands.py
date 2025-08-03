@@ -270,7 +270,7 @@ async def post_init(application: Application) -> None:
     commands = [
         BotCommand("ping", "Comprueba si el bot está activo"),
         BotCommand("system", "Muestra información completa del sistema"),
-        BotCommand("scheduled", "Muestra las alertas de precio programadas"),
+        BotCommand("list", "Muestra las alertas de precio programadas"),
         BotCommand("alert", "Crea una alerta de precio para un token"),
         BotCommand("info", "Consulta el precio actual de un token"),
         #BotCommand("list", "Muestra todas las alertas de precio"),
@@ -280,7 +280,7 @@ async def post_init(application: Application) -> None:
     logger.info("Comandos de teclado configurados")
 
 # Función para mostrar las alertas programadas
-async def scheduled_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Muestra las alertas de precio programadas en formato tabla"""
     global db
     if db is None:
