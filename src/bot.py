@@ -44,12 +44,15 @@ def main() -> None:
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).post_init(post_init).build()
 
     # Registrar los manejadores de comandos
-    application.add_handler(CommandHandler("ping", ping_command))
-    application.add_handler(CommandHandler("system", system_command))
+    application.add_handler(CommandHandler("ping", system_command))
     application.add_handler(CommandHandler("alert", alert_command))
+    application.add_handler(CommandHandler("a", alert_command)) # Alias para /alert
     application.add_handler(CommandHandler("list", list_command))
+    application.add_handler(CommandHandler("l", list_command))  # Alias para /list
     application.add_handler(CommandHandler("remove", remove_command))
+    application.add_handler(CommandHandler("r", remove_command)) # Alias para /remove
     application.add_handler(CommandHandler("info", tokenprice_command))
+    application.add_handler(CommandHandler("i", tokenprice_command)) # Alias para /info
 
     # Configurar la tarea programada (cada X minutos)
     job_queue = application.job_queue

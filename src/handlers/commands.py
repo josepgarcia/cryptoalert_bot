@@ -273,7 +273,6 @@ async def post_init(application: Application) -> None:
         BotCommand("list", "Muestra las alertas de precio programadas"),
         BotCommand("alert", "Crea una alerta de precio para un token"),
         BotCommand("info", "Consulta el precio actual de un token"),
-        #BotCommand("list", "Muestra todas las alertas de precio"),
         BotCommand("remove", "Elimina una alerta de precio por ID")
     ]
     await application.bot.set_my_commands(commands)
@@ -281,7 +280,7 @@ async def post_init(application: Application) -> None:
 
 # Función para mostrar las alertas programadas
 async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Muestra las alertas de precio programadas en formato tabla"""
+    """Muestra las alertas de precio programadas en formato tabla con precios actuales"""
     global db
     if db is None:
         db = CryptoDatabase()
@@ -296,36 +295,61 @@ async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         return
     
+    # Agrupar alertas por token para hacer una sola petición por token
+    tokens = {}
+    for alert in active_alerts:
+        token_name = alert['token_name']
+        if token_name not in tokens:
+            tokens[token_name] = []
+        tokens[token_name].append(alert)
+    
+    # Obtener precios actuales de todos los tokens únicos
+    token_prices = {}
+    for token_name in tokens.keys():
+        try:
+            # Convertir el nombre del token a minúsculas para la API
+            token_id = token_name.lower()
+            url = f"https://api.coingecko.com/api/v3/simple/price?ids={token_id}&vs_currencies=usd"
+            response = requests.get(url)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if token_id in data and 'usd' in data[token_id]:
+                    current_price = data[token_id]['usd']
+                    token_prices[token_name] = current_price
+                else:
+                    token_prices[token_name] = "N/A"
+            else:
+                token_prices[token_name] = "Error"
+        except Exception as e:
+            logger.error(f"Error al obtener precio de {token_name}: {str(e)}")
+            token_prices[token_name] = "Error"
+    
     # Crear tabla con formato simple usando tabs
     table_header = "🔔 <b>Alertas de Precio Programadas</b>\n\n"
-    table_header += "<pre>ID\tToken\tTipo\tPrecio Obj.\n"
-    table_header += "──\t─────\t────\t──────────\n</pre>"
+    #table_header += "<pre>ID\tToken\tTipo\tPrecio Obj.\tPrecio Actual\n"
+    #table_header += "──\t─────\t────\t──────────\t────────────\n</pre>"
     
     table_rows = ""
     for alert in active_alerts:
         # Convertir los valores de sqlite3.Row a strings para evitar problemas de formato
         alert_id = str(alert['id'])
         token_name = str(alert['token_name'])
-        token_contract = str(alert['token_contract']) if alert['token_contract'] else "N/A"
         alert_type = "↑ Above" if str(alert['alert_type']) == 'above' else "↓ Below"
         target_price = str(alert['target_price'])
         
-        # Formatear fecha de creación
-        created_at = str(alert['created_at'])
-        if len(created_at) > 19:  # Si es muy larga, truncar
-            created_at = created_at[:19]
+        # Obtener precio actual del token
+        current_price = token_prices.get(token_name, "N/A")
+        if isinstance(current_price, (int, float)):
+            current_price_str = f"${current_price:.2f}"
+        else:
+            current_price_str = str(current_price)
         
-        # Añadir fila con tabs
-        #table_rows += f"{alert_id}\t{token_name}\t{alert_type}\t{target_price}\t{token_contract}\t{created_at}\n"
-        table_rows += f"{alert_id}\t{token_name}\t{alert_type}\t{target_price}\n"
+        # Añadir fila con tabs incluyendo el precio actual
+        table_rows += f"{alert_id}\t{token_name}\t{alert_type}\t{target_price}$\t [{current_price_str}$]\n"
     
     # Crear mensaje completo
-    #message = table_header + "<pre>" + table_rows + "</pre>\n"
     message = "<pre>" + table_rows + "</pre>\n"
-    #message += "<b>Leyenda:</b>\n"
-    #message += "• ↑ Above: Alerta cuando el precio suba por encima del objetivo\n"
-    #message += "• ↓ Below: Alerta cuando el precio baje por debajo del objetivo\n"
-    #message += "• N/A: Sin contrato específico"
     
     # Enviar la tabla con formato HTML
     await update.message.reply_text(message, parse_mode='HTML')
