@@ -269,11 +269,11 @@ async def post_init(application: Application) -> None:
     """Configura los comandos que aparecerán en el teclado de Telegram"""
     commands = [
         BotCommand("ping", "Comprueba si el bot está activo"),
-        BotCommand("system", "Muestra información completa del sistema"),
-        BotCommand("list", "Muestra las alertas de precio programadas"),
-        BotCommand("alert", "Crea una alerta de precio para un token"),
-        BotCommand("info", "Consulta el precio actual de un token"),
-        BotCommand("remove", "Elimina una alerta de precio por ID")
+        #BotCommand("system", "Muestra información completa del sistema"),
+        BotCommand("list", "/l Muestra las alertas de precio programadas"),
+        BotCommand("alert", "/a Crea una alerta de precio para un token"),
+        BotCommand("info", "/i Consulta el precio actual de un token"),
+        BotCommand("remove", "/r Elimina una alerta de precio por ID")
     ]
     await application.bot.set_my_commands(commands)
     logger.info("Comandos de teclado configurados")
