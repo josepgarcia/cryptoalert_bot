@@ -36,3 +36,6 @@ Thumbs.db
 .docker/
 docker-data/
 *.env.docker
+
+# database
+crypto_alerts.db
